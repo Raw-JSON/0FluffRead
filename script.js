@@ -133,7 +133,8 @@ async function loadFeed() {
                 result = data;
                 break; // Success, exit loop
             } else if (data.status === 'error') {
-                // If the proxy service returned an error status
+                // *** ENHANCED TELEMETRY HERE ***
+                console.error('Proxy Service Failed:', data); 
                 throw new Error(`Proxy Error: ${data.message || 'Failed to parse RSS feed via proxy.'}`);
             }
 
