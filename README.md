@@ -15,16 +15,6 @@ The current stable version is live at: [https://raw-json.github.io/0FluffRead/](
 * **Minimal Footprint:** Built with vanilla JavaScript, HTML, and a utility-first CSS framework (Tailwind CSS CDN).
 * **Robust Fetching:** Includes an exponential backoff retry mechanism for reliable feed loading.
 
----
-
-## 🛠️ Installation & Setup
-
-This is a static-only application. No backend or build step is required.
-
-1.  **Clone the Repository:**
-    ```bash
-    git clone [https://github.com/RawJSON/0FluffRead.git](https://github.com/RawJSON/0FluffRead.git)
-    cd 0FluffRead
     ```
 
 2.  **Run Locally:**
