@@ -1,0 +1,18 @@
+/* Custom CSS for 0FluffRead */
+
+/* Set Inter font and background color using standard CSS */
+body { 
+    font-family: 'Inter', sans-serif; 
+    background-color: #f7f9fb; 
+}
+
+/* Apply hover effects to the feed cards */
+.feed-card { 
+    transition: all 0.3s ease; 
+}
+
+.feed-card:hover { 
+    /* Lift the card up and add a noticeable shadow on hover */
+    transform: translateY(-3px); 
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05); 
+}
