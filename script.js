@@ -5,6 +5,9 @@ const loadButton = document.getElementById('loadButton');
 const loadingIndicator = document.getElementById('loadingIndicator');
 const messageBox = document.getElementById('messageBox');
 
+// Default feeds for initial load/display
+const DEFAULT_FEEDS = urlInput.value.split(',').map(url => url.trim()).filter(Boolean);
+
 /**
  * Converts a JavaScript Date object to a readable string.
  * @param {Date} date The date object.
@@ -42,26 +45,28 @@ const showMessage = (message, type = 'warning') => {
 
 /**
  * Renders the feed articles into the container.
- * @param {Array<Object>} items Array of feed articles.
- * @param {Object} feedInfo Object containing feed title and link.
+ * This is now a unified renderer for merged articles.
+ * @param {Array<Object>} items Array of feed articles (already sorted).
+ * @param {Array<Object>} feedSources Array of successful feed metadata.
  */
-const renderFeed = (items, feedInfo) => {
+const renderFeed = (items, feedSources) => {
     feedContainer.innerHTML = ''; // Clear existing content
 
     if (items.length === 0) {
         feedContainer.innerHTML = `
             <div class="p-6 bg-white rounded-xl shadow-md">
-                <p class="text-gray-500 text-center">No articles found in this feed. Maybe it's dead, Jacob.</p>
+                <p class="text-gray-500 text-center">No articles found in any loaded feed.</p>
             </div>
         `;
         return;
     }
 
-    // Display Feed Metadata
+    // Display Feed Metadata Summary
+    const titles = feedSources.map(f => f.title || 'Unknown Feed').join(', ');
     const feedTitleHtml = `
         <div class="p-6 bg-white rounded-xl shadow-md border-l-4 border-indigo-400 mb-6">
-            <h2 class="text-2xl font-bold text-gray-800">${feedInfo.title || 'Unknown Feed'}</h2>
-            <a href="${feedInfo.link}" target="_blank" class="text-indigo-500 hover:text-indigo-700 text-sm truncate block" rel="noopener noreferrer">${feedInfo.link || 'No Link'}</a>
+            <h2 class="text-2xl font-bold text-gray-800">Aggregated Feed: ${titles}</h2>
+            <p class="text-gray-500 text-sm">${items.length} articles found.</p>
         </div>
     `;
     feedContainer.insertAdjacentHTML('beforeend', feedTitleHtml);
@@ -83,7 +88,7 @@ const renderFeed = (items, feedInfo) => {
                 <a href="${item.link}" target="_blank" rel="noopener noreferrer" class="block">
                     <h3 class="text-xl font-semibold text-gray-900 mb-2 hover:text-indigo-600 transition-colors">${item.title}</h3>
                 </a>
-                <p class="text-sm text-gray-400 mb-3">${pubDate}</p>
+                <p class="text-sm text-gray-400 mb-3">${pubDate} from ${item.feedTitle}</p>
                 <p class="text-gray-600 mb-4">${cleanDescription}</p>
                 <a href="${item.link}" target="_blank" rel="noopener noreferrer" class="text-indigo-500 font-medium hover:text-indigo-700 text-sm">
                     Read Full Article &rarr;
@@ -95,85 +100,121 @@ const renderFeed = (items, feedInfo) => {
 };
 
 /**
- * Fetches and loads the RSS feed using a CORS-bypassing proxy.
+ * Fetches a single RSS feed using a CORS-bypassing proxy.
+ * @param {string} rssUrl The URL of the RSS feed to fetch.
+ * @returns {Promise<Object|null>} The parsed JSON data or null on failure.
  */
-async function loadFeed() {
-    const rssUrl = urlInput.value.trim();
-    if (!rssUrl) {
-        showMessage("I need a URL, Jacob. Don't waste my time.", 'error');
-        return;
-    }
-
+async function loadFeed(rssUrl) {
+    if (!rssUrl) return null;
+    
     // Proxy URL to bypass CORS and convert RSS XML to JSON
     const proxyUrl = `https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(rssUrl)}`;
     
-    // UI state changes
-    loadButton.disabled = true;
-    loadingIndicator.classList.remove('hidden');
-    feedContainer.innerHTML = '';
-    messageBox.classList.add('hidden');
-
-    // Exponential backoff setup for fetching
     const MAX_RETRIES = 3;
     let attempt = 0;
-    let result = null;
 
     while (attempt < MAX_RETRIES) {
         try {
             const response = await fetch(proxyUrl, { method: 'GET' });
             
             if (!response.ok) {
-                // If it's a non-200 HTTP status, throw an error
-                throw new Error(`HTTP error! Status: ${response.status}`);
+                throw new Error(`HTTP error! Status: ${response.status} for ${rssUrl}`);
             }
 
             const data = await response.json();
             
             if (data.status === 'ok' && data.items) {
-                result = data;
-                break; // Success, exit loop
+                // Attach feed title to each item for display in renderFeed
+                const feedTitle = data.feed.title || new URL(rssUrl).hostname;
+                data.items.forEach(item => {
+                    item.feedTitle = feedTitle;
+                });
+                return data; // Success
             } else if (data.status === 'error') {
-                // *** ENHANCED TELEMETRY HERE ***
-                console.error('Proxy Service Failed:', data); 
+                console.error(`Proxy Service Failed for ${rssUrl}:`, data); 
                 throw new Error(`Proxy Error: ${data.message || 'Failed to parse RSS feed via proxy.'}`);
             }
 
         } catch (error) {
             attempt++;
-            console.error(`Fetch attempt ${attempt} failed:`, error.message);
+            console.error(`Fetch attempt ${attempt} failed for ${rssUrl}:`, error.message);
             
             if (attempt >= MAX_RETRIES) {
-                // Final failure message after all retries
-                showMessage(`Failed to load feed after ${MAX_RETRIES} attempts. Error: ${error.message}`, 'error');
-                break; 
+                // Log final failure but do not throw, so other feeds can load.
+                console.error(`Final failure for ${rssUrl}.`);
+                return null;
             } else {
                 // Exponential backoff delay (1s, 2s, 4s)
                 const delay = Math.pow(2, attempt) * 1000;
-                // Silent wait for the next attempt
                 await new Promise(resolve => setTimeout(resolve, delay));
             }
         }
     }
+    return null; // Should only be reached if retries fail.
+}
+
+
+/**
+ * Orchestrates the fetching of multiple feeds, merges, sorts, and renders the results.
+ * @param {Array<string>} feedUrls Array of RSS feed URLs.
+ */
+async function loadAllFeeds(feedUrls) {
+    if (!feedUrls || feedUrls.length === 0) {
+        showMessage("I need at least one valid URL, Jacob.", 'error');
+        return;
+    }
+    
+    // UI state changes
+    loadButton.disabled = true;
+    loadingIndicator.classList.remove('hidden');
+    feedContainer.innerHTML = '';
+    messageBox.classList.add('hidden');
+    
+    // Concurrent fetching using Promise.all
+    const fetchPromises = feedUrls.map(url => loadFeed(url));
+    const results = await Promise.all(fetchPromises);
+    
+    // Filter out failed loads (nulls) and collect all items and successful feed info
+    const successfulLoads = results.filter(result => result !== null);
+    
+    let allItems = [];
+    const successfulFeeds = [];
+
+    successfulLoads.forEach(data => {
+        allItems = allItems.concat(data.items);
+        successfulFeeds.push(data.feed);
+    });
+
+    // Sort all articles chronologically by publication date (newest first)
+    allItems.sort((a, b) => new Date(b.pubDate) - new Date(a.pubDate));
     
     // Final UI cleanup
     loadButton.disabled = false;
     loadingIndicator.classList.add('hidden');
-
-    if (result) {
-        renderFeed(result.items, result.feed);
-        showMessage(`Feed loaded successfully from ${result.feed.title || 'the requested URL'}.`, 'success');
+    
+    if (successfulLoads.length > 0) {
+        renderFeed(allItems, successfulFeeds);
+        showMessage(`Successfully loaded ${successfulLoads.length} feed(s) with ${allItems.length} total articles.`, 'success');
+    } else {
+        renderFeed([], []); // Render a message that nothing was found
+        showMessage(`Failed to load any of the requested feeds after all retries. Check the URLs, Jacob.`, 'error');
     }
 }
+
 
 /**
  * Initialization function.
  */
 function init() {
-    // Attach event listener to the load button
-    loadButton.addEventListener('click', loadFeed);
+    // Event listener for the load button
+    loadButton.addEventListener('click', () => {
+        // Parse the comma-separated input value
+        const urls = urlInput.value.split(',').map(url => url.trim()).filter(Boolean);
+        loadAllFeeds(urls);
+    });
     
-    // Auto-load the default feed on page load
-    loadFeed();
+    // Auto-load the default feed(s) on page load
+    loadAllFeeds(DEFAULT_FEEDS);
 }
 
 // Execute initialization once the DOM is fully loaded
