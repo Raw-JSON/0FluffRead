@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>0FluffRead</title>
+    <!-- Load Tailwind CSS from CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Load custom styles -->
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+</head>
+<body class="p-4 md:p-8 min-h-screen">
+
+    <div id="app" class="max-w-4xl mx-auto">
+        <header class="mb-8 p-6 bg-white rounded-xl shadow-lg border-b-4 border-indigo-600">
+            <h1 class="text-3xl md:text-4xl font-extrabold text-gray-900 mb-2">0FluffRead: Zero Fluff Reader</h1>
+            <p class="text-gray-500">Inject that 2005 XML right here. (Using rss2json proxy because CORS is a coward).</p>
+        </header>
+
+        <div class="flex flex-col md:flex-row gap-4 mb-8">
+            <input 
+                type="url" 
+                id="rssUrlInput" 
+                value="https://www.theverge.com/rss/index.xml" 
+                placeholder="Enter RSS Feed URL (e.g., https://example.com/feed.xml)"
+                class="flex-grow p-3 border-2 border-gray-300 rounded-lg focus:outline-none focus:border-indigo-500 shadow-inner"
+            >
+            <button 
+                id="loadButton"
+                onclick="loadFeed()"
+                class="w-full md:w-auto px-6 py-3 bg-indigo-600 text-white font-bold rounded-lg shadow-md hover:bg-indigo-700 transition duration-150 ease-in-out transform hover:scale-105 active:scale-95 disabled:opacity-50"
+            >
+                Load Feed
+            </button>
+        </div>
+
+        <div id="messageBox" class="text-center p-4 rounded-lg bg-yellow-100 text-yellow-800 hidden"></div>
+
+        <div id="feedContainer" class="space-y-6">
+            <!-- Feed articles will be dynamically inserted here -->
+            <div class="text-center text-gray-500 p-10 bg-white rounded-xl shadow">
+                <p>Enter a URL and click 'Load Feed' to see articles.</p>
+            </div>
+        </div>
+
+        <div id="loadingIndicator" class="hidden text-center p-10">
+            <svg class="animate-spin h-8 w-8 text-indigo-500 mx-auto" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            </svg>
+            <p class="text-indigo-500 mt-2">Fetching that ancient data...</p>
+        </div>
+
+    </div>
+
+    <!-- Load JavaScript -->
+    <script src="script.js"></script>
+</body>
+</html>
+
