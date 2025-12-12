@@ -1,12 +1,46 @@
 // Global variables for DOM elements
 const feedContainer = document.getElementById('feedContainer');
-const urlInput = document.getElementById('rssUrlInput');
-const loadButton = document.getElementById('loadButton');
+// Removed urlInput and loadButton from global scope as they are replaced by settings
 const loadingIndicator = document.getElementById('loadingIndicator');
 const messageBox = document.getElementById('messageBox');
 
-// Default feeds for initial load/display
-const DEFAULT_FEEDS = urlInput.value.split(',').map(url => url.trim()).filter(Boolean);
+// New Settings elements
+const settingsButton = document.getElementById('settingsButton');
+const settingsDialog = document.getElementById('settingsDialog');
+const closeSettingsButton = document.getElementById('closeSettingsButton');
+const feedsList = document.getElementById('feedsList');
+const addFeedInput = document.getElementById('addFeedInput');
+const addFeedButton = document.getElementById('addFeedButton');
+const loadFeedFromSettingsButton = document.getElementById('loadFeedFromSettingsButton');
+
+const STORAGE_KEY = '0FluffReadFeeds';
+const DEFAULT_FEEDS = ['https://www.theverge.com/rss/index.xml', 'https://www.engadget.com/rss.xml'];
+
+/**
+ * Utility to retrieve the stored feed URLs.
+ * @returns {Array<string>} List of feed URLs.
+ */
+const getFeeds = () => {
+    try {
+        const stored = localStorage.getItem(STORAGE_KEY);
+        return stored ? JSON.parse(stored) : DEFAULT_FEEDS;
+    } catch (e) {
+        console.error("Error reading localStorage, using defaults:", e);
+        return DEFAULT_FEEDS;
+    }
+};
+
+/**
+ * Utility to save the current feed URLs.
+ * @param {Array<string>} feeds List of feed URLs to save.
+ */
+const saveFeeds = (feeds) => {
+    try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(feeds));
+    } catch (e) {
+        console.error("Error writing to localStorage:", e);
+    }
+};
 
 /**
  * Converts a JavaScript Date object to a readable string.
@@ -44,8 +78,88 @@ const showMessage = (message, type = 'warning') => {
 };
 
 /**
+ * Renders the list of current feed URLs in the settings dialog.
+ */
+const renderFeedsList = () => {
+    const currentFeeds = getFeeds();
+    feedsList.innerHTML = ''; // Clear existing list
+
+    if (currentFeeds.length === 0) {
+        feedsList.innerHTML = '<li class="text-gray-500 text-sm p-2">No feeds added.</li>';
+        return;
+    }
+
+    currentFeeds.forEach((url, index) => {
+        const listItem = document.createElement('li');
+        listItem.className = 'flex justify-between items-center p-2 bg-gray-50 rounded text-sm mb-1';
+        
+        // Display the URL, truncating it if necessary
+        const urlDisplay = url.length > 50 ? url.substring(0, 47) + '...' : url;
+
+        listItem.innerHTML = `
+            <span class="text-gray-700 truncate" title="${url}">${urlDisplay}</span>
+            <button data-index="${index}" class="remove-feed text-red-500 hover:text-red-700 font-bold text-lg leading-none transition-colors ml-4">&times;</button>
+        `;
+        feedsList.appendChild(listItem);
+    });
+
+    // Attach event listeners to removal buttons
+    document.querySelectorAll('.remove-feed').forEach(button => {
+        button.addEventListener('click', (e) => {
+            const indexToRemove = parseInt(e.currentTarget.getAttribute('data-index'));
+            removeFeed(indexToRemove);
+        });
+    });
+};
+
+/**
+ * Adds a new feed URL to the list.
+ */
+const addFeed = () => {
+    const url = addFeedInput.value.trim();
+    if (!url) {
+        showMessage('Feed URL cannot be empty.', 'warning');
+        return;
+    }
+    
+    let currentFeeds = getFeeds();
+
+    // Check for duplicates
+    if (currentFeeds.includes(url)) {
+        showMessage('Feed URL already exists.', 'warning');
+        addFeedInput.value = '';
+        return;
+    }
+
+    // Add new URL and save
+    currentFeeds.push(url);
+    saveFeeds(currentFeeds);
+    
+    // Update UI and clear input
+    renderFeedsList();
+    addFeedInput.value = '';
+    showMessage(`Feed added: ${url.substring(0, 30)}...`, 'success');
+};
+
+/**
+ * Removes a feed URL by index.
+ * @param {number} index The index of the URL to remove.
+ */
+const removeFeed = (index) => {
+    let currentFeeds = getFeeds();
+    const urlToRemove = currentFeeds[index];
+
+    currentFeeds.splice(index, 1);
+    saveFeeds(currentFeeds);
+
+    // Update UI
+    renderFeedsList();
+    showMessage(`Feed removed: ${urlToRemove.substring(0, 30)}...`, 'success');
+};
+
+
+/**
  * Renders the feed articles into the container.
- * This is now a unified renderer for merged articles.
  * @param {Array<Object>} items Array of feed articles (already sorted).
  * @param {Array<Object>} feedSources Array of successful feed metadata.
  */
@@ -61,12 +175,12 @@ const renderFeed = (items, feedSources) => {
         return;
     }
 
-    // Display Feed Metadata Summary
-    const titles = feedSources.map(f => f.title || 'Unknown Feed').join(', ');
+    // Display Feed Metadata Summary (Updated for new visual style)
+    const successfulTitles = feedSources.map(f => f.title || 'Unknown Feed').join(', ');
     const feedTitleHtml = `
-        <div class="p-6 bg-white rounded-xl shadow-md border-l-4 border-indigo-400 mb-6">
-            <h2 class="text-2xl font-bold text-gray-800">Aggregated Feed: ${titles}</h2>
-            <p class="text-gray-500 text-sm">${items.length} articles found.</p>
+        <div class="mb-8 p-4 bg-indigo-50 border-l-4 border-indigo-400">
+            <h2 class="text-2xl font-bold text-gray-800 tracking-tight">Aggregated Content</h2>
+            <p class="text-gray-500 text-sm mt-1">${items.length} articles from: ${successfulTitles.substring(0, 100)}...</p>
         </div>
     `;
     feedContainer.insertAdjacentHTML('beforeend', feedTitleHtml);
@@ -81,18 +195,16 @@ const renderFeed = (items, feedSources) => {
         const parser = new DOMParser();
         const doc = parser.parseFromString(description, 'text/html');
         // Truncate clean text for preview
-        const cleanDescription = doc.body.textContent.substring(0, 150) + (doc.body.textContent.length > 150 ? '...' : '');
+        const cleanDescription = doc.body.textContent.substring(0, 200) + (doc.body.textContent.length > 200 ? '...' : '');
 
+        // Note: The structure here relies on classes defined in the upcoming style.css update
         const cardHtml = `
-            <div class="feed-card bg-white p-6 rounded-xl shadow-md hover:shadow-xl border-t-2 border-gray-100">
+            <div class="article-card">
                 <a href="${item.link}" target="_blank" rel="noopener noreferrer" class="block">
-                    <h3 class="text-xl font-semibold text-gray-900 mb-2 hover:text-indigo-600 transition-colors">${item.title}</h3>
+                    <h3 class="card-title">${item.title}</h3>
                 </a>
-                <p class="text-sm text-gray-400 mb-3">${pubDate} from ${item.feedTitle}</p>
-                <p class="text-gray-600 mb-4">${cleanDescription}</p>
-                <a href="${item.link}" target="_blank" rel="noopener noreferrer" class="text-indigo-500 font-medium hover:text-indigo-700 text-sm">
-                    Read Full Article &rarr;
-                </a>
+                <p class="card-meta">${pubDate} — **${item.feedTitle}**</p>
+                <p class="card-description">${cleanDescription}</p>
             </div>
         `;
         feedContainer.insertAdjacentHTML('beforeend', cardHtml);
@@ -100,7 +212,7 @@ const renderFeed = (items, feedSources) => {
 };
 
 /**
- * Fetches a single RSS feed using a CORS-bypassing proxy.
+ * Fetches a single RSS feed using a CORS-bypassing proxy. (Unchanged, remains modular)
  * @param {string} rssUrl The URL of the RSS feed to fetch.
  * @returns {Promise<Object|null>} The parsed JSON data or null on failure.
  */
@@ -140,32 +252,35 @@ async function loadFeed(rssUrl) {
             console.error(`Fetch attempt ${attempt} failed for ${rssUrl}:`, error.message);
             
             if (attempt >= MAX_RETRIES) {
-                // Log final failure but do not throw, so other feeds can load.
                 console.error(`Final failure for ${rssUrl}.`);
                 return null;
             } else {
-                // Exponential backoff delay (1s, 2s, 4s)
                 const delay = Math.pow(2, attempt) * 1000;
                 await new Promise(resolve => setTimeout(resolve, delay));
             }
         }
     }
-    return null; // Should only be reached if retries fail.
+    return null;
 }
 
 
 /**
  * Orchestrates the fetching of multiple feeds, merges, sorts, and renders the results.
- * @param {Array<string>} feedUrls Array of RSS feed URLs.
  */
-async function loadAllFeeds(feedUrls) {
+async function loadAllFeeds() {
+    // New: Get feeds from the modular utility
+    const feedUrls = getFeeds();
+
     if (!feedUrls || feedUrls.length === 0) {
-        showMessage("I need at least one valid URL, Jacob.", 'error');
+        showMessage("No feeds configured. Open Settings to add a URL.", 'warning');
+        // Render empty container instead of throwing up the old message
+        feedContainer.innerHTML = '';
         return;
     }
     
     // UI state changes
-    loadButton.disabled = true;
+    settingsDialog.close(); // Close settings after triggering load
+    // loadButton.disabled = true; // Removed old button
     loadingIndicator.classList.remove('hidden');
     feedContainer.innerHTML = '';
     messageBox.classList.add('hidden');
@@ -174,7 +289,6 @@ async function loadAllFeeds(feedUrls) {
     const fetchPromises = feedUrls.map(url => loadFeed(url));
     const results = await Promise.all(fetchPromises);
     
-    // Filter out failed loads (nulls) and collect all items and successful feed info
     const successfulLoads = results.filter(result => result !== null);
     
     let allItems = [];
@@ -189,15 +303,15 @@ async function loadAllFeeds(feedUrls) {
     allItems.sort((a, b) => new Date(b.pubDate) - new Date(a.pubDate));
     
     // Final UI cleanup
-    loadButton.disabled = false;
+    // loadButton.disabled = false; // Removed old button
     loadingIndicator.classList.add('hidden');
     
     if (successfulLoads.length > 0) {
         renderFeed(allItems, successfulFeeds);
         showMessage(`Successfully loaded ${successfulLoads.length} feed(s) with ${allItems.length} total articles.`, 'success');
     } else {
-        renderFeed([], []); // Render a message that nothing was found
-        showMessage(`Failed to load any of the requested feeds after all retries. Check the URLs, Jacob.`, 'error');
+        renderFeed([], []); 
+        showMessage(`Failed to load any of the requested feeds after all retries. Open Settings to verify URLs.`, 'error');
     }
 }
 
@@ -206,15 +320,26 @@ async function loadAllFeeds(feedUrls) {
  * Initialization function.
  */
 function init() {
-    // Event listener for the load button
-    loadButton.addEventListener('click', () => {
-        // Parse the comma-separated input value
-        const urls = urlInput.value.split(',').map(url => url.trim()).filter(Boolean);
-        loadAllFeeds(urls);
+    // 1. Setup Settings Logic
+    settingsButton.addEventListener('click', () => {
+        renderFeedsList();
+        settingsDialog.showModal();
     });
+    closeSettingsButton.addEventListener('click', () => settingsDialog.close());
     
-    // Auto-load the default feed(s) on page load
-    loadAllFeeds(DEFAULT_FEEDS);
+    addFeedButton.addEventListener('click', addFeed);
+    // Allow pressing Enter in the input to add the feed
+    addFeedInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+            addFeed();
+        }
+    });
+
+    // 2. Setup Load Logic
+    loadFeedFromSettingsButton.addEventListener('click', loadAllFeeds);
+
+    // 3. Auto-load the default feed(s) on page load
+    loadAllFeeds();
 }
 
 // Execute initialization once the DOM is fully loaded
