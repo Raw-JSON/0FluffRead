@@ -96,9 +96,8 @@ const renderFeed = (items, feedInfo) => {
 
 /**
  * Fetches and loads the RSS feed using a CORS-bypassing proxy.
- * This function is made global so it can be called directly from the HTML onclick attribute.
  */
-window.loadFeed = async function() {
+async function loadFeed() {
     const rssUrl = urlInput.value.trim();
     if (!rssUrl) {
         showMessage("I need a URL, Jacob. Don't waste my time.", 'error');
@@ -165,5 +164,16 @@ window.loadFeed = async function() {
     }
 }
 
-// Auto-load the default feed on page load
-window.onload = loadFeed;
+/**
+ * Initialization function.
+ */
+function init() {
+    // Attach event listener to the load button
+    loadButton.addEventListener('click', loadFeed);
+    
+    // Auto-load the default feed on page load
+    loadFeed();
+}
+
+// Execute initialization once the DOM is fully loaded
+document.addEventListener('DOMContentLoaded', init);
