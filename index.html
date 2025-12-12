@@ -4,9 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>0FluffRead</title>
-    <!-- Load Tailwind CSS from CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Load custom styles -->
     <link rel="stylesheet" href="style.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
 </head>
@@ -28,7 +26,6 @@
             >
             <button 
                 id="loadButton"
-                onclick="loadFeed()"
                 class="w-full md:w-auto px-6 py-3 bg-indigo-600 text-white font-bold rounded-lg shadow-md hover:bg-indigo-700 transition duration-150 ease-in-out transform hover:scale-105 active:scale-95 disabled:opacity-50"
             >
                 Load Feed
@@ -38,7 +35,6 @@
         <div id="messageBox" class="text-center p-4 rounded-lg bg-yellow-100 text-yellow-800 hidden"></div>
 
         <div id="feedContainer" class="space-y-6">
-            <!-- Feed articles will be dynamically inserted here -->
             <div class="text-center text-gray-500 p-10 bg-white rounded-xl shadow">
                 <p>Enter a URL and click 'Load Feed' to see articles.</p>
             </div>
@@ -54,8 +50,6 @@
 
     </div>
 
-    <!-- Load JavaScript -->
     <script src="script.js"></script>
 </body>
 </html>
-
