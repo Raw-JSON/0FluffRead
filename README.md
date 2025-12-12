@@ -2,7 +2,7 @@
 
 > Zero ads. Zero tracking. Just articles.
 
-**[Open 0FluffRead/](https://raw-json.github.io/0FluffRead/)**
+**[Open 0FluffRead](https://raw-json.github.io/0FluffRead/)**
 
 ---
 
