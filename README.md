@@ -1,10 +1,8 @@
 # 0FluffRead
 
-Zero ads. Zero tracking. Just articles.
+> Zero ads. Zero tracking. Just articles.
 
-## 🚀 Live
-
-The current stable version is live at: [https://raw-json.github.io/0FluffRead/](https://raw-json.github.io/0FluffRead/)
+**[Open 0FluffRead/](https://raw-json.github.io/0FluffRead/)**
 
 ---
 
@@ -14,11 +12,6 @@ The current stable version is live at: [https://raw-json.github.io/0FluffRead/](
 * **CORS Bypass:** Utilizes an external proxy (`rss2json.com`) to handle cross-origin resource sharing, making any valid RSS URL loadable client-side.
 * **Minimal Footprint:** Built with vanilla JavaScript, HTML, and a utility-first CSS framework (Tailwind CSS CDN).
 * **Robust Fetching:** Includes an exponential backoff retry mechanism for reliable feed loading.
-
-    ```
-
-2.  **Run Locally:**
-    Open `index.html` directly in your web browser.
 
 ---
 
