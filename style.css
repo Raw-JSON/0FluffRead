@@ -1,60 +1,36 @@
-/* Custom CSS for 0FluffRead */
+/* 0FluffRead - Professional Aesthetics */
 
-/* Set Inter font and background color using standard CSS */
-body { 
-    font-family: 'Inter', sans-serif; 
-    background-color: #f7f9fb; 
+body {
+    background-color: #fafafa;
+    color: #1a1a1a;
+    font-family: 'Inter', sans-serif;
+    -webkit-font-smoothing: antialiased;
 }
 
-/* Base style for individual article cards */
 .article-card {
-    background-color: white;
-    padding: 1.5rem; /* p-6 */
-    border-radius: 0.75rem; /* rounded-xl */
-    box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06); /* subtle shadow */
-    border-left: 4px solid #e5e7eb; /* Initial light gray border-l-4 */
-    transition: all 0.2s ease-in-out; 
+    transition: transform 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275), box-shadow 0.2s ease;
 }
 
-/* Hover/Focus effect: Prominent indigo border, lift slightly */
-.article-card:hover { 
-    transform: translateY(-2px); 
-    border-left-color: #4f46e5; /* indigo-600 */
-    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+.article-card:hover {
+    transform: translateY(-4px);
+    border-color: #4f46e5;
 }
 
-/* Title Styling */
-.card-title {
-    font-size: 1.25rem; /* text-xl */
-    font-weight: 600; /* font-semibold */
-    color: #1f2937; /* text-gray-900 */
-    margin-bottom: 0.5rem; /* mb-2 */
-    line-height: 1.4;
-    transition: color 0.15s;
+/* Custom Line Clamp for Description */
+.line-clamp-3 {
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;  
+    overflow: hidden;
 }
 
-.article-card:hover .card-title {
-    color: #4f46e5; /* hover:text-indigo-600 */
-}
-
-/* Metadata Styling (Date and Source) */
-.card-meta {
-    font-size: 0.875rem; /* text-sm */
-    color: #6b7280; /* text-gray-400 */
-    margin-bottom: 0.75rem; /* mb-3 */
-}
-
-/* Description Styling */
-.card-description {
-    font-size: 1rem;
-    color: #4b5563; /* text-gray-600 */
-    margin-bottom: 1rem; /* mb-4 */
-    line-height: 1.5;
-}
-
-/* Custom style for the dialog backdrop */
-/* Note: Tailwind CDN doesn't directly support dialog styling, using standard CSS */
+/* Settings Backdrop Polish */
 dialog::backdrop {
-    background-color: rgba(0, 0, 0, 0.5);
     backdrop-filter: blur(4px);
+}
+
+/* Responsive Grid Tweaks */
+@media (max-width: 640px) {
+    body { padding: 1rem; }
+    h1 { font-size: 1.8rem; }
 }
